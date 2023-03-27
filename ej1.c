@@ -16,10 +16,7 @@
 int main(int argc, char **argv)
 {
     int size, rank;
-    if (argc != 1){
-        perror("Invalid number of arguments. Format required: ./program\n");
-        exit(-1);
-    }
+    
     MPI_Init(&argc, &argv);
     MPI_Comm_size(MPI_COMM_WORLD, &size);
     MPI_Comm_rank(MPI_COMM_WORLD, &rank);
