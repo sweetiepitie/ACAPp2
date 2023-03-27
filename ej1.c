@@ -12,6 +12,7 @@
 #define COMM_TAG 0
 #define EXIT_TAG 1
 
+
 int main(int argc, char **argv)
 {
     int size, rank;
@@ -31,8 +32,8 @@ int main(int argc, char **argv)
 
     if (rank == INTERACTOR)
     {
-        int action, tamR, tamMsg, sumStr;
-        char string[512];
+        int action, tamR, tamMsg1, tamMsg2, sumStr;
+        char string1[512], string2[512];
         float Rarray[] = {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.8, 9.9, 10.10},
             res;
         MPI_Status status;
@@ -42,25 +43,54 @@ int main(int argc, char **argv)
         {   
             switch(action){
                 case 1 :
+                    fflush(stdin);
                     printf("\nIntroduce a string: \n");
-                    scanf("%s", string);
-                    tamMsg = strlen(string) + 1;
-                    MPI_Send(string, tamMsg, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
-                    MPI_Recv(string, tamMsg, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD, &status);
-                    printf("\nNew string is %s\n", string);
+                    scanf("%s", string1);
+                    tamMsg1 = strlen(string1) + 1;
+                    MPI_Send(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
+                    MPI_Recv(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD, &status);
+                    printf("\nNew string is %s\n", string1);
                 
                 break;
                 case 2 :
                     MPI_Send(Rarray, 10, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD);
                     MPI_Recv(&res, 1, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD, &status);
-                    printf("Square root of array sum of an array of real numbers is %f\n", res);
+                    printf("\nSquare root of array sum of an array of real numbers is %f\n", res);
                 
                 break;
                 case 3 : 
-                    MPI_Send(&action, 1, MPI_INT, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD);
+                    fflush(stdin);
+                    printf("\nIntroduce a string: \n");
+                    scanf("%s", string2);
+                    tamMsg2 = strlen(string2) + 1;
+                    MPI_Send(string2, tamMsg2, MPI_CHAR, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD);
                     MPI_Recv(&sumStr, 1, MPI_INT, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD, &status);
-                    printf("The sum is %d\n", sumStr);
+                    printf("\nThe sum is %d\n", sumStr);
                 
+                break;
+                case 4:
+                    MPI_Send(Rarray, 10, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD);
+                    
+                    fflush(stdin);
+                    printf("\nIntroduce a string: \n");
+                    scanf("%s", string1);
+                    tamMsg1 = strlen(string1) + 1;
+                    MPI_Send(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
+                    
+                    fflush(stdin);
+                    printf("\nIntroduce a string: \n");
+                    scanf("%s", string2);
+                    tamMsg2 = strlen(string2) + 1;
+                    MPI_Send(string2, tamMsg2, MPI_CHAR, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD);
+
+                    MPI_Recv(&res, 1, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD, &status);
+                    printf("\nSquare root of array sum of an array of real numbers is %f\n", res);
+
+                    MPI_Recv(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD, &status);
+                    printf("\nNew string is %s\n", string1);
+
+                    MPI_Recv(&sumStr, 1, MPI_INT, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD, &status);
+                    printf("\nThe sum is %d\n", sumStr);
                 break;
                 default : break;
             }
@@ -116,23 +146,24 @@ int main(int argc, char **argv)
     
     }else if (rank == HIJOTONTO){
 
-        char msg[] = "Entrando en funcionalidad 3";
-        int tam = strlen(msg) - 1, action, sum;
+        char msg[512];
+        int tam, sum;
         MPI_Status status;
         
         MPI_Probe(INTERACTOR, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+        MPI_Get_count(&status, MPI_CHAR, &tam);
         while (status.MPI_TAG != EXIT_TAG)
         {   
             sum = 0;
-            MPI_Recv(&action, 1, MPI_INT, INTERACTOR, COMM_TAG, MPI_COMM_WORLD, &status);
+            MPI_Recv(msg, tam, MPI_CHAR, INTERACTOR, COMM_TAG, MPI_COMM_WORLD, &status);
             printf("Process n 3 received a request, gonna summ the following string %s\n", msg);
             for (int i = 0; i < tam - 1; i++)
                 sum += msg[i];
 
             MPI_Send(&sum, 1, MPI_INT, INTERACTOR, COMM_TAG, MPI_COMM_WORLD);
             MPI_Probe(INTERACTOR, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
+            MPI_Get_count(&status, MPI_CHAR, &tam);
         }
-    
     }
 
     MPI_Finalize();
