@@ -42,20 +42,20 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
     int i, j;
     for (i = 0; i < 3; i++)
         for (j = 0; j < 3; j++)
-        k = k + nucleo[i][j];
+            k += nucleo[i][j];
 
     for (x = 1; x < Largo-1; x++){
         for (y = 1; y < Alto-1; y++){
-        suma = 0;
-        for (i = 0; i < 3; i++){
-            for (j = 0; j < 3; j++){
-                suma = suma + Original[(x-1)+i][(y-1)+j] * nucleo[i][j];
+            suma = 0;
+            for (i = 0; i < 3; i++){
+                for (j = 0; j < 3; j++){
+                    suma = suma + Original[(x-1)+i][(y-1)+j] * nucleo[i][j];
+                }
             }
-        }
-        if(k==0)
-            Salida[x][y] = suma;
-        else
-            Salida[x][y] = suma/k;
+            if(k==0)
+                Salida[x][y] = suma;
+            else
+                Salida[x][y] = suma/k;
         }
     }
 }
@@ -72,7 +72,7 @@ int main(int argc, char *argv[]){
     int** nucleo = (int**) GetMem2D(3, 3, sizeof(int));
     for (i = 0; i < 3; i++)
         for (j = 0; j < 3; j++)
-        nucleo[i][j] = -1;
+            nucleo[i][j] = -1;
     nucleo[1][1] = 1;
 
     convolucion(Original, nucleo, Salida, Largo, Alto);
@@ -80,7 +80,6 @@ int main(int argc, char *argv[]){
     pgmwrite(Salida, "lena_procesada.pgm", Largo, Alto);
 
     Free2D((void**) nucleo, 3);
-
     Free2D((void**) Original, Largo);
     Free2D((void**) Salida, Largo);
-    }
+}
