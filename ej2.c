@@ -20,7 +20,6 @@ double get_wall_time(){
 	return (double)t.tv_sec + (double)t.tv_usec * .000001;
 }
 
-
 void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida, int Largo, int Alto) {
     int x, y;
     int suma;
@@ -47,7 +46,6 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
 }
 
 
-
 int main(int argc, char ** argv)
 {
     int size, rank;
@@ -65,19 +63,37 @@ int main(int argc, char ** argv)
     if (!rank)
     {
         // Reading the image, sending data to each process
-        int Largo, Alto, cols_per_process, rest, rest_sum;
+        MPI_Status status;
+        int Largo, Alto, rows_per_process, rest, rest_sum;
         double wall0, wall1;
+        printf("\n\n");
+        wall0 = get_wall_time();
         unsigned char** Original = pgmread("imagenes/lena_original.pgm", &Largo, &Alto);
         unsigned char** Salida   = (unsigned char**)GetMem2D(Largo, Alto, sizeof(unsigned char));
-        cols_per_process = (Alto - 2) / size;
-        rest = (Alto - 2) % size;
+        rows_per_process = Alto / size;
+        rest = (Alto) % size;
         char v[2*sizeof(int)];
 
         MPI_Bcast(&Largo, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
         for (int i = 1; i < size; i++){
-            MPI_Send(Original[i], Largo*cols_per_process + (i < rest), MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
+            rest_sum = Largo*(rows_per_process + (i < rest));
+            MPI_Send(Original[i], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
         }
-        
+        convolucion(Original, nucleo, Salida, Largo, rows_per_process);
+        for (int i = 1; i < size; i++){
+            rest_sum = Largo*(rows_per_process + (i < rest));
+            MPI_Recv(Salida[i+rows_per_process+(i<rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
+        }
+
+        pgmwrite(Salida, "lena_procesada2.pgm", Largo, Alto);
+
+        wall1 = get_wall_time();
+        printf("Wall time consumed : %f\n", wall1 - wall0);
+
+        Free2D((void**) nucleo, 3);
+        Free2D((void**) Original, Largo);
+        Free2D((void**) Salida, Largo);
+
     }else{
         int Largo, Alto, count; 
         MPI_Status status;
@@ -88,9 +104,13 @@ int main(int argc, char ** argv)
         unsigned char **Original = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
         unsigned char **Salida = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
         MPI_Recv(Original[0], count, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD, &status);
-        
-    }
+        convolucion(Original, nucleo, Salida, Largo, Alto);
+        MPI_Send(Salida[0], Largo*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
 
+        Free2D((void**) nucleo, 3);
+        Free2D((void**) Original, Largo);
+        Free2D((void**) Salida, Largo);
+    }
 
     MPI_Finalize();
     return 0;
