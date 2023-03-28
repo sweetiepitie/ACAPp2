@@ -30,7 +30,6 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
 
     for (x = 1; x < Largo-1; x++){
         for (y = 1; y < Alto-1; y++){
-            printf("\nAlto : %d\n", y);
             suma = 0;
             for (i = 0; i < 3; i++){
                 for (j = 0; j < 3; j++){
@@ -63,7 +62,7 @@ int main(int argc, char ** argv)
     {
         // Reading the image, sending data to each process
         MPI_Status status;
-        int Largo, Alto, cols_per_process, rest, rest_sum;
+        int Largo, Alto, cols_per_process, rest, rest_sum, id;
         double wall0, wall1;
         printf("\n\n");
         wall0 = get_wall_time();
@@ -74,13 +73,15 @@ int main(int argc, char ** argv)
 
         MPI_Bcast(&Largo, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
         for (int i = 1; i < size; i++){
-            rest_sum = Alto*(cols_per_process + (i <= rest));
-            MPI_Send(Original[i*(cols_per_process)+(i<=rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
+            rest_sum = Alto*(cols_per_process + (i <= rest) + (i>0 && i<size-1) + 1);
+            id = i*(cols_per_process+(i-1<=rest && i-1>0))-1;
+            MPI_Send(Original[id], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
         }
-        convolucion(Original, nucleo, Salida, Largo, Alto);
+        convolucion(Original, nucleo, Salida, cols_per_process+(size>1), Alto);
         for (int i = 1; i < size; i++){
             rest_sum = Alto*(cols_per_process + (i <= rest));
-            MPI_Recv(Salida[i*(cols_per_process)+(i<=rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
+            id = i*(cols_per_process)+(i-1> 0 && i-1 <=rest);
+            MPI_Recv(Salida[id], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
         }
 
         pgmwrite(Salida, "imagenes/lena_procesada1.pgm", Largo, Alto);
@@ -99,13 +100,12 @@ int main(int argc, char ** argv)
         MPI_Probe(MASTER, TAG, MPI_COMM_WORLD, &status);
         MPI_Get_count(&status, MPI_UNSIGNED_CHAR, &count);
         Largo = count / Alto;
-        printf("Largo recibido %d, Alto calculado %d\n", Largo, Alto);
-        unsigned char **Original = (unsigned char **)GetMem2D(Largo, Alto,sizeof(unsigned char));
+        unsigned char **Original = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
         unsigned char **Salida = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
 
         MPI_Recv(Original[0], count, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD, &status);
         convolucion(Original, nucleo, Salida, Largo, Alto);
-        MPI_Send(Salida[0], Largo*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
+        MPI_Send(Salida[1], (Largo-2)*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
         
         Free2D((void**) nucleo, 3);
         Free2D((void**) Original, Largo);
@@ -115,3 +115,4 @@ int main(int argc, char ** argv)
     MPI_Finalize();
     return 0;
 }
+
