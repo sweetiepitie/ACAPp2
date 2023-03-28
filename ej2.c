@@ -1,4 +1,3 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -31,6 +30,7 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
 
     for (x = 1; x < Largo-1; x++){
         for (y = 1; y < Alto-1; y++){
+            printf("\nAlto : %d\n", y);
             suma = 0;
             for (i = 0; i < 3; i++){
                 for (j = 0; j < 3; j++){
@@ -44,7 +44,6 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
         }
     }
 }
-
 
 int main(int argc, char ** argv)
 {
@@ -64,28 +63,27 @@ int main(int argc, char ** argv)
     {
         // Reading the image, sending data to each process
         MPI_Status status;
-        int Largo, Alto, rows_per_process, rest, rest_sum;
+        int Largo, Alto, cols_per_process, rest, rest_sum;
         double wall0, wall1;
         printf("\n\n");
         wall0 = get_wall_time();
         unsigned char** Original = pgmread("imagenes/lena_original.pgm", &Largo, &Alto);
         unsigned char** Salida   = (unsigned char**)GetMem2D(Largo, Alto, sizeof(unsigned char));
-        rows_per_process = Alto / size;
-        rest = (Alto) % size;
-        char v[2*sizeof(int)];
+        cols_per_process = (Largo) / size;
+        rest = (Largo) % size;
 
         MPI_Bcast(&Largo, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
         for (int i = 1; i < size; i++){
-            rest_sum = Largo*(rows_per_process + (i < rest));
-            MPI_Send(Original[i], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
+            rest_sum = Alto*(cols_per_process + (i <= rest));
+            MPI_Send(Original[i*(cols_per_process)+(i<=rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
         }
-        convolucion(Original, nucleo, Salida, Largo, rows_per_process);
+        convolucion(Original, nucleo, Salida, Largo, Alto);
         for (int i = 1; i < size; i++){
-            rest_sum = Largo*(rows_per_process + (i < rest));
-            MPI_Recv(Salida[i+rows_per_process+(i<rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
+            rest_sum = Alto*(cols_per_process + (i <= rest));
+            MPI_Recv(Salida[i*(cols_per_process)+(i<=rest)], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
         }
 
-        pgmwrite(Salida, "lena_procesada2.pgm", Largo, Alto);
+        pgmwrite(Salida, "imagenes/lena_procesada1.pgm", Largo, Alto);
 
         wall1 = get_wall_time();
         printf("Wall time consumed : %f\n", wall1 - wall0);
@@ -97,16 +95,18 @@ int main(int argc, char ** argv)
     }else{
         int Largo, Alto, count; 
         MPI_Status status;
-        MPI_Bcast(&Largo, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+        MPI_Bcast(&Alto, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
         MPI_Probe(MASTER, TAG, MPI_COMM_WORLD, &status);
         MPI_Get_count(&status, MPI_UNSIGNED_CHAR, &count);
-        Alto = count / Largo;
-        unsigned char **Original = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
+        Largo = count / Alto;
+        printf("Largo recibido %d, Alto calculado %d\n", Largo, Alto);
+        unsigned char **Original = (unsigned char **)GetMem2D(Largo, Alto,sizeof(unsigned char));
         unsigned char **Salida = (unsigned char **)GetMem2D(Largo, Alto, sizeof(unsigned char));
+
         MPI_Recv(Original[0], count, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD, &status);
         convolucion(Original, nucleo, Salida, Largo, Alto);
         MPI_Send(Salida[0], Largo*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
-
+        
         Free2D((void**) nucleo, 3);
         Free2D((void**) Original, Largo);
         Free2D((void**) Salida, Largo);
