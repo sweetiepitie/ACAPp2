@@ -33,7 +33,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#include <sys/time.h>
 #include "pgm.h"
+
+double get_wall_time(){
+	struct timeval t;
+	if (gettimeofday(&t, NULL)){
+		printf("lol\n");
+		return 0;
+	}
+
+	return (double)t.tv_sec + (double)t.tv_usec * .000001;
+}
+
 
 void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida, int Largo, int Alto) {
     int x, y;
@@ -65,8 +78,10 @@ void convolucion(unsigned char** Original, int** nucleo, unsigned char** Salida,
 int main(int argc, char *argv[]){
     int Largo, Alto;
     int i, j;
+    double wall0, wall1;
     
-    unsigned char** Original = pgmread("lena_original.pgm", &Largo, &Alto);
+    wall0 = get_wall_time();
+    unsigned char** Original = pgmread("imagenes/lena_original.pgm", &Largo, &Alto);
     unsigned char** Salida   = (unsigned char**)GetMem2D(Largo, Alto, sizeof(unsigned char));
 
     int** nucleo = (int**) GetMem2D(3, 3, sizeof(int));
@@ -77,7 +92,10 @@ int main(int argc, char *argv[]){
 
     convolucion(Original, nucleo, Salida, Largo, Alto);
 
-    pgmwrite(Salida, "lena_procesada.pgm", Largo, Alto);
+    pgmwrite(Salida, "lena_procesada1.pgm", Largo, Alto);
+    wall1 = get_wall_time();
+
+    printf("Wall time consumed : %f\n", wall1 - wall0);
 
     Free2D((void**) nucleo, 3);
     Free2D((void**) Original, Largo);
