@@ -75,13 +75,14 @@ int main(int argc, char **argv)
                     fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string1);
-                    tamMsg1 = strlen(string1) + 1;
-                    MPI_Send(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
-                    
                     fflush(stdin);
                     fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string2);
+                    
+                    tamMsg1 = strlen(string1) + 1;
+                    MPI_Send(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
+                    
                     tamMsg2 = strlen(string2) + 1;
                     MPI_Send(string2, tamMsg2, MPI_CHAR, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD);
                     
