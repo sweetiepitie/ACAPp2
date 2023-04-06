@@ -102,7 +102,7 @@ int main(int argc, char ** argv)
             MPI_Recv(Salida[id], rel_size, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
         }
 
-        pgmwrite(Salida, "imagenes/lena_procesada1.pgm", Largo, Alto);
+        pgmwrite(Salida, "imagenes/lena_procesada.pgm", Largo, Alto);
 
         wall1 = get_wall_time();
         printf("Wall time consumed : %f\n", wall1 - wall0);
