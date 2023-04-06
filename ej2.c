@@ -80,7 +80,6 @@ int main(int argc, char ** argv)
         for (int i = 1; i < size; i++){
             complement_size = (i < rest) + (i < size-1);
             complement_id = (i - 1 < rest) + (i - 1 < size-1);
-            //printf("\n complement size id : %d %d\n", complement_size, complement_id);
             rel_size = Alto*(cols_per_process + complement_size + 1);
             id = (rest) ? ((i - 1 < rest) ? cols_per_process + (i-1)*(cols_per_process + complement_id-1) 
                             : rest*(cols_per_process + 1) + cols_per_process-1 + (i-1-rest)*cols_per_process)
