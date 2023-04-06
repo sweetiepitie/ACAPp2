@@ -41,6 +41,7 @@ int main(int argc, char **argv)
             switch(action){
                 case 1 :
                     fflush(stdin);
+                    fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string1);
                     tamMsg1 = strlen(string1) + 1;
@@ -50,6 +51,7 @@ int main(int argc, char **argv)
                 
                 break;
                 case 2 :
+                    fflush(stdout);
                     MPI_Send(Rarray, 10, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD);
                     MPI_Recv(&res, 1, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD, &status);
                     printf("\nSquare root of array sum of an array of real numbers is %f\n", res);
@@ -57,6 +59,7 @@ int main(int argc, char **argv)
                 break;
                 case 3 : 
                     fflush(stdin);
+                    fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string2);
                     tamMsg2 = strlen(string2) + 1;
@@ -69,17 +72,19 @@ int main(int argc, char **argv)
                     MPI_Send(Rarray, 10, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD);
                     
                     fflush(stdin);
+                    fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string1);
                     tamMsg1 = strlen(string1) + 1;
                     MPI_Send(string1, tamMsg1, MPI_CHAR, UPPER, COMM_TAG, MPI_COMM_WORLD);
                     
                     fflush(stdin);
+                    fflush(stdout);
                     printf("\nIntroduce a string: \n");
                     scanf("%s", string2);
                     tamMsg2 = strlen(string2) + 1;
                     MPI_Send(string2, tamMsg2, MPI_CHAR, HIJOTONTO, COMM_TAG, MPI_COMM_WORLD);
-
+                    
                     MPI_Recv(&res, 1, MPI_FLOAT, ADDER, COMM_TAG, MPI_COMM_WORLD, &status);
                     printf("\nSquare root of array sum of an array of real numbers is %f\n", res);
 
@@ -151,9 +156,10 @@ int main(int argc, char **argv)
         MPI_Get_count(&status, MPI_CHAR, &tam);
         while (status.MPI_TAG != EXIT_TAG)
         {   
+            fflush(stdout);
+            printf("\nEntrando en funcionalidad 3\n");
             sum = 0;
             MPI_Recv(msg, tam, MPI_CHAR, INTERACTOR, COMM_TAG, MPI_COMM_WORLD, &status);
-            printf("Process n 3 received a request, gonna summ the following string %s\n", msg);
             for (int i = 0; i < tam - 1; i++)
                 sum += msg[i];
 
