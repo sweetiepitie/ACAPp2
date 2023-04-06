@@ -96,7 +96,7 @@ int main(int argc, char ** argv)
         for (int i = 1; i < size; i++){
             complement_size = (i < rest);
             complement_id = (i-1 < rest);
-            rel_size = Alto*(cols_per_process + complement_size+1);
+            rel_size = Alto*(cols_per_process + complement_size);
             id = (rest) ? ((i-1 < rest) ? i*(cols_per_process + complement_id) : rest*(cols_per_process + 1) + (i-rest)*cols_per_process)
                          : i*cols_per_process;
             MPI_Recv(Salida[id], rel_size, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
@@ -123,7 +123,7 @@ int main(int argc, char ** argv)
 
         MPI_Recv(Original[0], count, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD, &status);
         convolucion(Original, nucleo, Salida, Largo, Alto);
-        MPI_Send(Salida[1], (Largo-1)*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
+        MPI_Send(Salida[1], (Largo-2)*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
         
         Free2D((void**) nucleo, 3);
         Free2D((void**) Original, Largo);
