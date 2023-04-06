@@ -63,7 +63,7 @@ int main(int argc, char ** argv)
     {
         // Reading the image, sending data to each process
         MPI_Status status;
-        int Largo, Alto, cols_per_process, rest, rest_sum, id;
+        int Largo, Alto, cols_per_process, rest, rel_size, id, complement_size, complement_id;
         double wall0, wall1;
         printf("\n\n");
         wall0 = get_wall_time();
@@ -72,17 +72,35 @@ int main(int argc, char ** argv)
         cols_per_process = (Largo) / size;
         rest = (Largo) % size;
 
-        MPI_Bcast(&Largo, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+        MPI_Bcast(&Alto, 1, MPI_INT, MASTER, MPI_COMM_WORLD);
+
+        // Calculating number of columns that is gonna be sent to each process.
+        // Index from which data is sent is calculated given the contiguos memory allocation of a matrix.
+        // Good luck lol
         for (int i = 1; i < size; i++){
-            rest_sum = Alto*(cols_per_process + (i <= rest) + (i>0 && i<size-1) + 1);
-            id = i*(cols_per_process+(i-1<=rest && i-1>0))-1;
-            MPI_Send(Original[id], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
+            complement_size = (i < rest) + (i < size-1);
+            complement_id = (i - 1 < rest) + (i - 1 < size-1);
+            //printf("\n complement size id : %d %d\n", complement_size, complement_id);
+            rel_size = Alto*(cols_per_process + complement_size + 1);
+            id = (rest) ? ((i - 1 < rest) ? cols_per_process + (i-1)*(cols_per_process + complement_id-1) 
+                            : rest*(cols_per_process + 1) + cols_per_process-1 + (i-1-rest)*cols_per_process)
+                         : cols_per_process-1 + (i-1)*cols_per_process;
+        
+            MPI_Send(Original[id], rel_size, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD);
         }
-        convolucion(Original, nucleo, Salida, cols_per_process+(size>1), Alto);
+        
+        complement_size = (size > 1) + (rest != 0);
+        convolucion(Original, nucleo, Salida, cols_per_process+complement_size, Alto);
+
+        // Same thing as above, calculating index and size, however this time it is done in order to 
+        // write into result matrix
         for (int i = 1; i < size; i++){
-            rest_sum = Alto*(cols_per_process + (i <= rest));
-            id = i*(cols_per_process)+(i-1> 0 && i-1 <=rest);
-            MPI_Recv(Salida[id], rest_sum, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
+            complement_size = (i < rest);
+            complement_id = (i-1 < rest);
+            rel_size = Alto*(cols_per_process + complement_size+1);
+            id = (rest) ? ((i-1 < rest) ? i*(cols_per_process + complement_id) : rest*(cols_per_process + 1) + (i-rest)*cols_per_process)
+                         : i*cols_per_process;
+            MPI_Recv(Salida[id], rel_size, MPI_UNSIGNED_CHAR, i, TAG, MPI_COMM_WORLD, &status);
         }
 
         pgmwrite(Salida, "imagenes/lena_procesada1.pgm", Largo, Alto);
@@ -106,7 +124,7 @@ int main(int argc, char ** argv)
 
         MPI_Recv(Original[0], count, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD, &status);
         convolucion(Original, nucleo, Salida, Largo, Alto);
-        MPI_Send(Salida[1], (Largo-2)*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
+        MPI_Send(Salida[1], (Largo-1)*Alto, MPI_UNSIGNED_CHAR, MASTER, TAG, MPI_COMM_WORLD);
         
         Free2D((void**) nucleo, 3);
         Free2D((void**) Original, Largo);
